@@ -11,21 +11,22 @@ class HTTPServer
     loop {
       session = @server.accept
       Thread.start(session) do |client|
-        request = session.gets
-        response = "Hello world\n"
-        STDERR.puts(request)
-        session.print("HTTP/1.1 200 OK\r\n" +
-                       "Content-Type: text/plain\r\n" +
-                      "Content-Length: #{response.bytesize}\r\n" +
-                       "Connection: close\r\n")
-        session.print("\r\n")
-        session.print(response)
-        session.close
+        serve(client)
       end
     }
   end
 
   def serve(client)
+    request = client.gets
+    response = "Hello world\n"
+    STDERR.puts(request)
+    client.print("HTTP/1.1 200 \r\n" +
+                 "Content-Type: text/plain\r\n" +
+                 "Content-Length: #{response.bytesize}\r\n" +
+    "Connection: close\r\n")
+    client.print("\r\n")
+    client.print(response)
+    client.close
   end
 
   def get
