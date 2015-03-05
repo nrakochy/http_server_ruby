@@ -3,5 +3,6 @@ $:.unshift(File.expand_path(File.dirname(__FILE__) + "/../lib/"))
 
 require 'server'
 
-server_config = {host: 'localhost', port: 8080}
+port = ARGV[0] || 5000
+server_config = { host: 'localhost', port: port }
 HTTPServer.new(server_config).run

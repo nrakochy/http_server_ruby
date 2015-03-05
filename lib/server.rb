@@ -5,7 +5,6 @@ class HTTPServer
 
   def initialize(params)
     @server = TCPServer.new(params[:host], params[:port])
-    run
   end
 
   def run
