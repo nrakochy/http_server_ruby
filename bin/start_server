@@ -4,5 +4,5 @@ $:.unshift(File.expand_path(File.dirname(__FILE__) + "/../lib/"))
 require 'server'
 require 'response_message_presenter'
 
-server_config = { host: 'localhost', port: 5000, io: ResponseMessagePresenter.new }
+server_config = { hostname: 'localhost', port: 5000 }
 HTTPServer.new(server_config).run

@@ -6,6 +6,10 @@ class ResponseMessagePresenter
     @io = io
   end
 
+  def print_out(message)
+    @io.print_message(message)
+  end
+
   def server_started(host, port)
     @io.print_message("Server is started and listening on #{host.to_s} #{port.to_s}")
   end
