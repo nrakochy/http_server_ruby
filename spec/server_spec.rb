@@ -1,5 +1,5 @@
 require 'server'
-#require 'webmock'
+require 'webmock'
 
 describe HTTPServer do
   server = HTTPServer.new({ hostname: "localhost", port: 5000 })
@@ -33,7 +33,30 @@ describe HTTPServer do
       expect(server.split_http_request(request)).to eq(
         ["GET", "/path/to/file/index.html", "HTTP/1.0", "MORE", "interesting", "data"])
     end
-
   end
 
+  describe "#set_response_message" do
+    it "returns the HTTP message based on the status code" do
+      expect(server.set_response_message(200)).to eq("OK")
+      expect(server.set_response_message(500)).to eq("Internal Server Error")
+    end
+
+    it "returns 'Not Found' by default" do
+      expect(server.set_response_message(800)).to eq("Not Found")
+    end
+  end
+
+  describe "#create_response_header" do
+    it "returns a properly formatted HTTP response header" do
+      code = 200
+      type = "text/html"
+      length = 25
+      expected_result =
+        "HTTP/1.1 200 OK\r\n" +
+        "Content-Type: text/html\r\n" +
+        "Content-Length: 25\r\n" +
+        "Connection: close\r\n"
+      expect(server.create_response_header(code, type, length)).to eq(expected_result)
+    end
+  end
 end

@@ -5,7 +5,6 @@ class HTTPServer
 
   def initialize(params)
     @server = TCPServer.new(params[:hostname], params[:port])
-    puts("Server started and listening on #{params[:host]}#{params[:port]}")
   end
 
   def run
@@ -20,9 +19,7 @@ class HTTPServer
   def serve(client)
     request = client.gets.to_s
     parsed_request = split_request_by_line(request)
-    client.print(parsed_request)
     first_line = parsed_request.first
-    #request_type = first_line.first
     requested_file_path = first_line[1]
 
     if legitmate_file_request?(requested_file_path)
@@ -32,13 +29,13 @@ class HTTPServer
 
     STDERR.puts(request)
 
-      client.print("HTTP/1.1 #{status_code} \r\n" +
-                   "Content-Type: text/plain\r\n" +
-                   "Content-Length: #{response_body.bytesize}\r\n" +
+    client.print("HTTP/1.1 #{status_code} \r\n" +
+                 "Content-Type: text/plain\r\n" +
+                 "Content-Length: #{response_body.bytesize}\r\n" +
     "Connection: close\r\n")
-      client.print("\r\n")
-      client.print(response_body)
-      client.close
+    client.print("\r\n")
+    client.print(response_body)
+    client.close
   end
 
   def legitimate_file_request?(requested_file_path)
@@ -46,7 +43,7 @@ class HTTPServer
   end
 
   def split_http_request(request)
-   request.split(" ")
+    request.split(" ")
   end
 
   def find_content_type(path)
@@ -62,11 +59,31 @@ class HTTPServer
     content_type[ext]
   end
 
-  def raise_http_response(type)
+  def create_response_header(status_code, content_type, response_length)
+    "HTTP/1.1 #{status_code} #{set_response_message(status_code)}\r\n" +
+    "Content-Type: #{content_type}\r\n" +
+    "Content-Length: #{response_length}\r\n" +
+    "Connection: close\r\n"
   end
 
-  def set_status_code
+  def set_response_message(status_code)
+    response_messages = {
+      200 => "OK",
+      201 => "Created",
+      204 => "No Content",
+      301 => "Moved Permanently",
+      304 => "Not Modified",
+      400 => "Bad Request",
+      401 => "Unauthorized",
+      403 => "Forbidden",
+      404 => "Not Found",
+      500 => "Internal Server Error"
+    }
+    response_messages.default = "Not Found"
+    response_messages[status_code]
   end
+
+
 
   def get
   end
