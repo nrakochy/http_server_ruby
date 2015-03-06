@@ -45,9 +45,8 @@ class HTTPServer
     File.exists?(requested_file_path) && !File.directory?(requested_file_path)
   end
 
-  def split_request_by_line(request)
-    full_request = request.split("\n")
-    full_request.map{ |line| split(" ") }
+  def split_http_request(request)
+   request.split(" ")
   end
 
   def find_content_type(path)
