@@ -17,23 +17,19 @@ class HTTPServer
   end
 
   def serve(client)
-    request = client.gets.to_s
-    parsed_request = split_request_by_line(request)
+    request = client.gets
+    STDERR.puts(request)
+
+    parsed_request = split_http_request(request)
     first_line = parsed_request.first
     requested_file_path = first_line[1]
 
-    if legitmate_file_request?(requested_file_path)
-      status_code = 200
-      response_body = "Hello World\n"
-    end
+    status_code = "200"
+    content_type = "text/html"
+    response_body = "Hello World\n"
+    header = create_response_header(status_code, content_type, response_body.length)
 
-    STDERR.puts(request)
-
-    client.print("HTTP/1.1 #{status_code} \r\n" +
-                 "Content-Type: text/plain\r\n" +
-                 "Content-Length: #{response_body.bytesize}\r\n" +
-    "Connection: close\r\n")
-    client.print("\r\n")
+    client.print(header)
     client.print(response_body)
     client.close
   end
@@ -61,35 +57,27 @@ class HTTPServer
 
   def create_response_header(status_code, content_type, response_length)
     "HTTP/1.1 #{status_code} #{set_response_message(status_code)}\r\n" +
+    "Date: #{Time.now.to_s}\r\n" +
     "Content-Type: #{content_type}\r\n" +
     "Content-Length: #{response_length}\r\n" +
-    "Connection: close\r\n"
+    "Connection: close\r\n\r\n"
   end
 
   def set_response_message(status_code)
     response_messages = {
-      200 => "OK",
-      201 => "Created",
-      204 => "No Content",
-      301 => "Moved Permanently",
-      304 => "Not Modified",
-      400 => "Bad Request",
-      401 => "Unauthorized",
-      403 => "Forbidden",
-      404 => "Not Found",
-      500 => "Internal Server Error"
+      "200" => "OK",
+      "201" => "Created",
+      "204" => "No Content",
+      "301" => "Moved Permanently",
+      "304" => "Not Modified",
+      "400" => "Bad Request",
+      "401" => "Unauthorized",
+      "403" => "Forbidden",
+      "404" => "Not Found",
+      "500" => "Internal Server Error"
     }
     response_messages.default = "Not Found"
     response_messages[status_code]
   end
-
-
-
-  def get
-  end
-
-  def post
-  end
-
 end
 

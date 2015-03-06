@@ -37,8 +37,8 @@ describe HTTPServer do
 
   describe "#set_response_message" do
     it "returns the HTTP message based on the status code" do
-      expect(server.set_response_message(200)).to eq("OK")
-      expect(server.set_response_message(500)).to eq("Internal Server Error")
+      expect(server.set_response_message("200")).to eq("OK")
+      expect(server.set_response_message("500")).to eq("Internal Server Error")
     end
 
     it "returns 'Not Found' by default" do
@@ -48,14 +48,16 @@ describe HTTPServer do
 
   describe "#create_response_header" do
     it "returns a properly formatted HTTP response header" do
-      code = 200
+      code = "200"
       type = "text/html"
       length = 25
       expected_result =
         "HTTP/1.1 200 OK\r\n" +
+        "Date: #{Time.now.to_s}\r\n" +
         "Content-Type: text/html\r\n" +
         "Content-Length: 25\r\n" +
-        "Connection: close\r\n"
+        "Connection: close\r\n" +
+        "\r\n"
       expect(server.create_response_header(code, type, length)).to eq(expected_result)
     end
   end
