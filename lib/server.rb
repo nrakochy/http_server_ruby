@@ -6,7 +6,7 @@ class HTTPServer
 
   def initialize(params)
     @server = TCPServer.new(params[:hostname], params[:port])
-    @public_dir = File.expand_path("../public", __FILE__)
+    @public_dir = File.expand_path("../../public", __FILE__)
   end
 
   def run
@@ -23,15 +23,17 @@ class HTTPServer
     STDERR.puts(http_request)
     response = process_and_interpret_request(http_request)
     header = response["header"]
+    puts "HEADER CLASS #{header.class}"
     response_body = response["response_body"]
+    puts "BODY CLASS #{response_body.class}"
     client.print(header)
-    client.print(response_body)
+    client.print(response_body) if !response_body.empty?
     client.close
   end
 
   def process_and_interpret_request(request)
     parsed_data = process_request(request)
-    interpret_request(parsed_data)
+    interpret_request_method(parsed_data)
   end
 
   def process_request(request)
@@ -42,9 +44,9 @@ class HTTPServer
     { "method" => method, "uri" => uri, "post_data" => post_data }
   end
 
-  def interpret_request(request)
-    get(request["uri"]) #if request["method"] == "GET"
-    #head(request["uri"]) if request["method"] == "HEAD"
+  def interpret_request_method(request)
+    get(request["uri"]) if request["method"] == "GET"
+    #head if request["method"] == "HEAD"
     #post(request["uri"]) if request["method"] == "POST"
     #put(request["uri"]) if request["method"] == "PUT"
     #options(request["uri"]) if request["method"] == "OPTIONS"
@@ -59,12 +61,28 @@ class HTTPServer
     path = incoming_path.path
     full_path = File.join(@public_dir, path)
     if legitimate_file_request?(full_path)
-      response_body = File.readlines(full_path, "rb")
-      header = { "status_code" => "200", "content_type" => "text/html", "content_length" => "25" }
+      response_body = read_file(full_path)
+      content_type = find_content_type(full_path)
+      header_info = { "status_code" => "200", "content_type" => content_type, "content_length" => response_body.length }
+      header = create_response_header(header_info)
       { "header" => header, "response_body" => response_body }
     else
       raise_404_error
     end
+  end
+
+  def head(incoming_path)
+    header_info = { "status_code" => "200", "content_type" => "text/plain", "content_length" => 0 }
+    header = create_response_header(header_info)
+    empty_body = ''
+    [header, empty_body]
+  end
+
+  def read_file(full_path)
+     file = File.open(full_path, "rb")
+     data = file.read
+     file.close
+     data
   end
 
   def legitimate_file_request?(requested_file_path)
@@ -78,7 +96,8 @@ class HTTPServer
       "jpg" => "image/jpeg",
       "png" => "image/png",
       "gif" => "image/gif",
-      "txt" => "text/html"
+      "txt" => "text/plain",
+      "html" => "text/html"
     }
     content_type.default = "application/octet-stream"
     content_type[ext]

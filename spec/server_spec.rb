@@ -37,13 +37,13 @@ describe HTTPServer do
   describe "#raise_404_error" do
     it "returns a hash with properly formatted response_header" do
       error = server.raise_404_error
-      header_template = (
+      expected_404 = (
         "HTTP/1.1 404 Not Found\r\n" +
         "Date: #{Time.now.to_s}\r\n" +
         "Content-Type: text/plain\r\n" +
         "Content-Length: 14\r\n" +
         "Connection: close\r\n\r\n")
-      expect(error["header"]).to eq(header_template)
+      expect(error["header"]).to eq(expected_404)
     end
   end
 
