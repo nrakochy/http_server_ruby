@@ -6,6 +6,7 @@ class HTTPServer
 
   def initialize(params)
     @server = TCPServer.new(params[:hostname], params[:port])
+    @public_dir = File.expand_path("../public", __FILE__)
   end
 
   def run
@@ -18,31 +19,52 @@ class HTTPServer
   end
 
   def serve(client)
-    request = client.gets
-    STDERR.puts(request)
-
-    status_code = "200"
-    content_type = "text/html"
-    response_body = "Hello World\n"
-    header = create_response_header(status_code, content_type, response_body.length)
-
+    http_request = client.gets
+    STDERR.puts(http_request)
+    response = process_and_interpret_request(http_request)
+    header = response["header"]
+    response_body = response["response_body"]
     client.print(header)
     client.print(response_body)
     client.close
+  end
+
+  def process_and_interpret_request(request)
+    parsed_data = process_request(request)
+    interpret_request(parsed_data)
   end
 
   def process_request(request)
     split_req = split_http_request(request)
     method = split_req[0]
     uri = URI(split_req[1])
-    { "method" => method, "uri" => uri }
+    post_data = URI(split_req.last)
+    { "method" => method, "uri" => uri, "post_data" => post_data }
   end
 
   def interpret_request(request)
+    get(request["uri"]) #if request["method"] == "GET"
+    #head(request["uri"]) if request["method"] == "HEAD"
+    #post(request["uri"]) if request["method"] == "POST"
+    #put(request["uri"]) if request["method"] == "PUT"
+    #options(request["uri"]) if request["method"] == "OPTIONS"
+    #delete(request["uri"]) if request["method"] == "DELETE"
   end
 
  def split_http_request(request)
     request.split(" ")
+ end
+
+  def get(incoming_path)
+    path = incoming_path.path
+    full_path = File.join(@public_dir, path)
+    if legitimate_file_request?(full_path)
+      response_body = File.readlines(full_path, "rb")
+      header = { "status_code" => "200", "content_type" => "text/html", "content_length" => "25" }
+      { "header" => header, "response_body" => response_body }
+    else
+      raise_404_error
+    end
   end
 
   def legitimate_file_request?(requested_file_path)
@@ -62,12 +84,19 @@ class HTTPServer
     content_type[ext]
   end
 
-  def create_response_header(status_code, content_type, response_length)
-    "HTTP/1.1 #{status_code} #{set_response_message(status_code)}\r\n" +
+  def create_response_header(response)
+    "HTTP/1.1 #{response["status_code"]}\r\n" +
     "Date: #{Time.now.to_s}\r\n" +
-    "Content-Type: #{content_type}\r\n" +
-    "Content-Length: #{response_length}\r\n" +
+    "Content-Type: #{response["content_type"]}\r\n" +
+    "Content-Length: #{response["content_length"]}\r\n" +
     "Connection: close\r\n\r\n"
+  end
+
+  def raise_404_error
+    message = "File not found"
+    header_info = { "status_code" => "404 Not Found", "content_type" => "text/plain", "content_length" => message.length }
+    header = create_response_header(header_info)
+    { "header" => header, "response_body" => message }
   end
 
   def set_response_message(status_code)
@@ -76,6 +105,7 @@ class HTTPServer
       "201" => "Created",
       "204" => "No Content",
       "301" => "Moved Permanently",
+      "302" => "Moved Temporarily",
       "304" => "Not Modified",
       "400" => "Bad Request",
       "401" => "Unauthorized",
