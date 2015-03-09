@@ -35,6 +35,24 @@ describe HTTPServer do
     end
   end
 
+  describe "#process_request" do
+    it 'returns a hash containing the HTTP request method' do
+      request = "GET /path/to/file/index.html HTTP/1.0"
+      processed_req = server.process_request(request)
+      expect(processed_req["method"]).to eq("GET")
+    end
+
+    it 'returns a hash containing the request URI' do
+      request = "GET /path/to/file/index.html HTTP/1.0"
+      processed_req = server.process_request(request)
+      uri = URI(processed_req["uri"])
+      expect(uri.class).to eq(URI::Generic)
+      expect(uri.path).to eq("/path/to/file/index.html")
+    end
+  end
+
+
+
   describe "#set_response_message" do
     it "returns the HTTP message based on the status code" do
       expect(server.set_response_message("200")).to eq("OK")
@@ -54,7 +72,7 @@ describe HTTPServer do
       expected_result =
         "HTTP/1.1 200 OK\r\n" +
         "Date: #{Time.now.to_s}\r\n" +
-        "Content-Type: text/html\r\n" +
+      "Content-Type: text/html\r\n" +
         "Content-Length: 25\r\n" +
         "Connection: close\r\n" +
         "\r\n"

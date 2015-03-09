@@ -1,4 +1,5 @@
 require 'socket'
+require 'uri'
 require 'thread'
 
 class HTTPServer
@@ -20,10 +21,6 @@ class HTTPServer
     request = client.gets
     STDERR.puts(request)
 
-    parsed_request = split_http_request(request)
-    first_line = parsed_request.first
-    requested_file_path = first_line[1]
-
     status_code = "200"
     content_type = "text/html"
     response_body = "Hello World\n"
@@ -34,12 +31,22 @@ class HTTPServer
     client.close
   end
 
-  def legitimate_file_request?(requested_file_path)
-    File.exists?(requested_file_path) && !File.directory?(requested_file_path)
+  def process_request(request)
+    split_req = split_http_request(request)
+    method = split_req[0]
+    uri = URI(split_req[1])
+    { "method" => method, "uri" => uri }
   end
 
-  def split_http_request(request)
+  def interpret_request(request)
+  end
+
+ def split_http_request(request)
     request.split(" ")
+  end
+
+  def legitimate_file_request?(requested_file_path)
+    File.exists?(requested_file_path) && !File.directory?(requested_file_path)
   end
 
   def find_content_type(path)
