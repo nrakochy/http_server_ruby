@@ -23,9 +23,7 @@ class HTTPServer
     STDERR.puts(http_request)
     response = process_and_interpret_request(http_request)
     header = response["header"]
-    puts "HEADER CLASS #{header.class}"
     response_body = response["response_body"]
-    puts "BODY CLASS #{response_body.class}"
     client.print(header)
     client.print(response_body) if !response_body.empty?
     client.close
@@ -45,11 +43,19 @@ class HTTPServer
   end
 
   def interpret_request_method(request)
-    get(request["uri"]) if request["method"] == "GET"
-    #head if request["method"] == "HEAD"
+    case request["method"]
+    when "GET"
+      get(request["uri"])
+    when "HEAD"
+      head(request["uri"])
+    #when "OPTIONS"
+    #  options
+    else
+      raise_404_error
+    end
+
     #post(request["uri"]) if request["method"] == "POST"
     #put(request["uri"]) if request["method"] == "PUT"
-    #options(request["uri"]) if request["method"] == "OPTIONS"
     #delete(request["uri"]) if request["method"] == "DELETE"
   end
 
@@ -59,11 +65,12 @@ class HTTPServer
 
   def get(incoming_path)
     path = incoming_path.path
+    path = '/index.html' if path == "/"
     full_path = File.join(@public_dir, path)
     if legitimate_file_request?(full_path)
       response_body = read_file(full_path)
       content_type = find_content_type(full_path)
-      header_info = { "status_code" => "200", "content_type" => content_type, "content_length" => response_body.length }
+      header_info = { "status_code" => "200 OK", "content_type" => content_type, "content_length" => response_body.length }
       header = create_response_header(header_info)
       { "header" => header, "response_body" => response_body }
     else
@@ -72,10 +79,26 @@ class HTTPServer
   end
 
   def head(incoming_path)
-    header_info = { "status_code" => "200", "content_type" => "text/plain", "content_length" => 0 }
-    header = create_response_header(header_info)
-    empty_body = ''
-    [header, empty_body]
+    path = incoming_path.path
+    full_path = File.join(@public_dir, path)
+    if legitimate_file_request?(full_path)
+      response_body = ""
+      content_type = find_content_type(full_path)
+      header_info = { "status_code" => "200 OK", "content_type" => content_type, "content_length" => response_body.length }
+      header = create_response_header(header_info)
+      { "header" => header, "response_body" => response_body }
+    else
+      raise_404_error
+    end
+  end
+
+  def options
+      message = "Allow: GET,HEAD,POST,OPTIONS,PUT,DELETE\r\n"
+      body = ""
+      header_info = { "status_code" => "200 OK", "content_type" => "text/plain", "content_length" => body.length }
+      header = create_response_header(header_info)
+      header += message
+      { "header" => header, "response_body" => body }
   end
 
   def read_file(full_path)
