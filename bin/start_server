@@ -1,9 +1,11 @@
 #!/usr/bin/env ruby
+
 $:.unshift(File.expand_path(File.dirname(__FILE__) + "/../lib/"))
 
 require 'server'
 
-server_config = { hostname: 'localhost', port: 5000 }
-print("Server started and listening on #{server_config[:host]}#{server_config[:port]}\r\n")
+
+server_config = { "port" => 5000, "hostname" => "::1" }
+print("Server started and listening on port #{server_config["port"]}\r\n")
 
 HTTPServer.new(server_config).run

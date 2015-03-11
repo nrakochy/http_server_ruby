@@ -5,8 +5,8 @@ require 'thread'
 class HTTPServer
 
   def initialize(params)
-    @server = TCPServer.new(params[:hostname], params[:port])
-    @public_dir = File.expand_path("../../public", __FILE__)
+    @server = TCPServer.new(params["hostname"], params["port"])
+    @public_dir = params["public_directory"] || File.expand_path("../../public", __FILE__)
   end
 
   def run
@@ -19,27 +19,33 @@ class HTTPServer
   end
 
   def serve(client)
-    http_request = client.gets
+    http_request = retrieve_request(client)
     STDERR.puts(http_request)
     response = process_and_interpret_request(http_request)
     header = response["header"]
     response_body = response["response_body"]
     client.print(header)
     client.print(response_body) if !response_body.empty?
+  ensure
     client.close
   end
 
+  def retrieve_request(client)
+    client.readpartial(800)
+  end
+
   def process_and_interpret_request(request)
-    parsed_data = process_request(request)
+    parsed_data = split_request(request)
     interpret_request_method(parsed_data)
   end
 
-  def process_request(request)
-    split_req = split_http_request(request)
-    method = split_req[0]
-    uri = URI(split_req[1])
-    post_data = URI(split_req.last)
-    { "method" => method, "uri" => uri, "post_data" => post_data }
+  def split_request(request)
+    split_req = request.split("\n")
+    first_line = split_req[0].split(" ")
+    method = first_line[0]
+    uri = URI(first_line[1])
+    incoming_data = split_req.last
+    { "method" => method, "uri" => uri, "incoming_data" => incoming_data }
   end
 
   def interpret_request_method(request)
@@ -48,20 +54,17 @@ class HTTPServer
       get(request["uri"])
     when "HEAD"
       head(request["uri"])
-    #when "OPTIONS"
-    #  options
+    when "POST"
+      post(request)
+      #when "OPTIONS"
+      #  options
     else
       raise_404_error
     end
 
-    #post(request["uri"]) if request["method"] == "POST"
     #put(request["uri"]) if request["method"] == "PUT"
     #delete(request["uri"]) if request["method"] == "DELETE"
   end
-
- def split_http_request(request)
-    request.split(" ")
- end
 
   def get(incoming_path)
     path = incoming_path.path
@@ -86,26 +89,38 @@ class HTTPServer
       content_type = find_content_type(full_path)
       header_info = { "status_code" => "200 OK", "content_type" => content_type, "content_length" => response_body.length }
       header = create_response_header(header_info)
-      { "header" => header, "response_body" => response_body }
+      return { "header" => header, "response_body" => response_body }
+    else
+      raise_404_error
+    end
+  end
+
+  def post(request)
+    path = request["uri"].path
+    if path == "/form"
+      response_body = "Your requested data has been received: " + request["incoming_data"]
+      header_info = { "status_code" => "200 OK", "content_type" => "plain/text", "content_length" => response_body.length }
+      header = create_response_header(header_info)
+      return { "header" => header, "response_body" => response_body }
     else
       raise_404_error
     end
   end
 
   def options
-      message = "Allow: GET,HEAD,POST,OPTIONS,PUT,DELETE\r\n"
-      body = ""
-      header_info = { "status_code" => "200 OK", "content_type" => "text/plain", "content_length" => body.length }
-      header = create_response_header(header_info)
-      header += message
-      { "header" => header, "response_body" => body }
+    message = "Allow: GET,HEAD,POST,OPTIONS,PUT,DELETE\r\n"
+    body = ""
+    header_info = { "status_code" => "200 OK", "content_type" => "text/plain", "content_length" => body.length }
+    header = create_response_header(header_info)
+    header += message
+    { "header" => header, "response_body" => body }
   end
 
   def read_file(full_path)
-     file = File.open(full_path, "rb")
-     data = file.read
-     file.close
-     data
+    file = File.open(full_path, "rb")
+    data = file.read
+    file.close
+    data
   end
 
   def legitimate_file_request?(requested_file_path)
@@ -128,7 +143,7 @@ class HTTPServer
 
   def create_response_header(response)
     "HTTP/1.1 #{response["status_code"]}\r\n" +
-    "Date: #{Time.now.to_s}\r\n" +
+      "Date: #{Time.now.to_s}\r\n" +
     "Content-Type: #{response["content_type"]}\r\n" +
     "Content-Length: #{response["content_length"]}\r\n" +
     "Connection: close\r\n\r\n"
