@@ -21,7 +21,7 @@ class HTTPServer
   def serve(client)
     http_request = retrieve_request(client)
     STDERR.puts(http_request)
-    response = process_and_interpret_request(http_request)
+    response = split_and_interpret_request(http_request)
     header = response["header"]
     response_body = response["response_body"]
     client.print(header)
@@ -34,7 +34,7 @@ class HTTPServer
     client.readpartial(800)
   end
 
-  def process_and_interpret_request(request)
+  def split_and_interpret_request(request)
     parsed_data = split_request(request)
     interpret_request_method(parsed_data)
   end

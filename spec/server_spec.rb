@@ -2,37 +2,22 @@ require 'server'
 require 'webmock'
 
 describe HTTPServer do
-  server = HTTPServer.new({ hostname: "localhost", port: 5000 })
+  server = HTTPServer.new({ "hostname" => "::1", "port" => 5000 })
 
-  describe "#split_http_request" do
-    it 'returns an array which splits the HTTP req by space' do
+  describe "#split_request" do
+    it 'returns a hash with method and uri from a one-line HTTP req by space' do
       request = "GET /path/to/file/index.html HTTP/1.0"
-      expect(server.split_http_request(request)).to eq(["GET", "/path/to/file/index.html", "HTTP/1.0"])
+      expect(server.split_request(request)).to eq(
+        { "method" => "GET", "uri" => URI("/path/to/file/index.html"), "incoming_data" => "GET /path/to/file/index.html HTTP/1.0" })
     end
 
-    it 'returns an array which splits multi-line http request' do
-      request = "GET /path/to/file/index.html HTTP/1.0 \n MORE interesting    data"
-      expect(server.split_http_request(request)).to eq(
-        ["GET", "/path/to/file/index.html", "HTTP/1.0", "MORE", "interesting", "data"])
+    it 'returns a hash with method /uri/ and incoming_data from a one-line HTTP req by space' do
+      request = "GET /path/to/file/index.html HTTP/1.0\nparams1=value1"
+      expect(server.split_request(request)).to eq(
+        { "method" => "GET", "uri" => URI("/path/to/file/index.html"), "incoming_data" => "params1=value1" })
     end
+
   end
-
-  describe "#process_request" do
-    it 'returns a hash containing the HTTP request method' do
-      request = "GET /path/to/file/index.html HTTP/1.0"
-      processed_req = server.process_request(request)
-      expect(processed_req["method"]).to eq("GET")
-    end
-
-    it 'returns a hash containing the request URI' do
-      request = "GET /path/to/file/index.html HTTP/1.0"
-      processed_req = server.process_request(request)
-      uri = URI(processed_req["uri"])
-      expect(uri.class).to eq(URI::Generic)
-      expect(uri.path).to eq("/path/to/file/index.html")
-    end
-  end
-
 
   describe "#raise_404_error" do
     it "returns a hash with properly formatted response_header" do
@@ -41,8 +26,8 @@ describe HTTPServer do
         "HTTP/1.1 404 Not Found\r\n" +
         "Date: #{Time.now.to_s}\r\n" +
         "Content-Type: text/plain\r\n" +
-        "Content-Length: 14\r\n" +
-        "Connection: close\r\n\r\n")
+          "Content-Length: 14\r\n" +
+          "Connection: close\r\n\r\n")
       expect(error["header"]).to eq(expected_404)
     end
   end
