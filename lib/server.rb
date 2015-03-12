@@ -32,7 +32,7 @@ class HTTPServer
   end
 
   def retrieve_request(client)
-    client.readpartial(800)
+    client.readpartial(1000)
   end
 
   def split_request(request)

@@ -35,7 +35,7 @@ class ServerResponse
     if legitimate_file_request?(@abs_path)
       path_to_file = check_for_root(@relative_path)
       response_body = read_file(path_to_file)
-      header_info = { "status_code" => set_response_message(200), "content_type" => find_content_type(full_path), "content_length" => response_body.length }
+      header_info = { "status_code" => set_response_message(200), "content_type" => find_content_type(path_to_file), "content_length" => response_body.length }
       header = create_response_header(header_info)
       { "header" => header, "response_body" => response_body }
     else
@@ -95,7 +95,7 @@ class ServerResponse
   end
 
   def check_for_root(path)
-    (path == "/") ? (@public_dir + "/index.html") : @abs_path
+    (path == "/") ? (@abs_path + "index.html") : @abs_path
   end
 
   def check_for_redirect(uri)
@@ -119,7 +119,8 @@ class ServerResponse
   end
 
   def legitimate_file_request?(requested_file_path)
-    requested_file_path == @public_dir || (File.exists?(requested_file_path) && !File.directory?(requested_file_path))
+    root = File.join(@public_dir, "/")
+    requested_file_path == root || (File.exists?(requested_file_path) && !File.directory?(requested_file_path))
   end
 
   def find_content_type(path)

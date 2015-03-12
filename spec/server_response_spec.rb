@@ -19,8 +19,9 @@ describe ServerResponse do
       end
 
       it 'returns true if requested file path is the root directory' do
-        filepath = File.expand_path("../../public/", __FILE__)
-        expect(basic_post_response.legitimate_file_request?(filepath)).to eq(true)
+        filepath = File.expand_path("../../public", __FILE__)
+        root = File.join(filepath, "/")
+        expect(basic_post_response.legitimate_file_request?(root)).to eq(true)
         expect(File.directory?(filepath)).to eq(true)
       end
 
