@@ -5,9 +5,10 @@ class ServerResponse
   def initialize(request)
     @method = request["method"]
     @uri = request["uri"]
-    @path = @uri.path
+    @relative_path = @uri.path
     @incoming_data = request["incoming_data"]
     @public_dir = File.expand_path("../../public", __FILE__)
+    @abs_path = File.join(@public_dir, @relative_path)
     @request_params = find_query_params
   end
 
@@ -31,10 +32,9 @@ class ServerResponse
   end
 
   def get
-    path = check_for_root(@path)
-    full_path = set_full_path(path)
-    if legitimate_file_request?(full_path)
-      response_body = read_file(full_path)
+    if legitimate_file_request?(@abs_path)
+      path_to_file = check_for_root(@relative_path)
+      response_body = read_file(path_to_file)
       header_info = { "status_code" => set_response_message(200), "content_type" => find_content_type(full_path), "content_length" => response_body.length }
       header = create_response_header(header_info)
       { "header" => header, "response_body" => response_body }
@@ -44,8 +44,7 @@ class ServerResponse
   end
 
   def head
-    full_path = set_full_path(@path)
-    if legitimate_file_request?(full_path)
+    if legitimate_file_request?(@abs_path)
       response_body = ""
       content_type = find_content_type(full_path)
       header_info = { "status_code" => set_response_message(200), "content_type" => content_type, "content_length" => response_body.length }
@@ -57,10 +56,9 @@ class ServerResponse
   end
 
   def post
-    if @path == "/form"
-      full_path = set_full_path(@path)
-      write_file(full_path, @incoming_data)
-      response_body = read_file(full_path)
+    if @relative_path == "/form"
+      write_file(@abs_path, @incoming_data)
+      response_body = read_file(@abs_path)
       header_info = { "status_code" => set_response_message(200), "content_type" => "plain/text", "content_length" => response_body.length }
       header = create_response_header(header_info)
       { "header" => header, "response_body" => response_body }
@@ -85,10 +83,9 @@ class ServerResponse
   end
 
   def delete
-    if @path == "/form"
-      full_path = set_full_path(@path)
-      write_file(full_path, "")
-      response_body = read_file(full_path)
+    if @relative_path == "/form"
+      write_file(@abs_path, "")
+      response_body = read_file(@abs_path)
       header_info = { "status_code" => set_response_message(200), "content_type" => "plain/text", "content_length" => response_body.length }
       header = create_response_header(header_info)
       { "header" => header, "response_body" => response_body }
@@ -98,7 +95,11 @@ class ServerResponse
   end
 
   def check_for_root(path)
-    (path == "/") ? "/index.html" : path
+    (path == "/") ? (@public_dir + "/index.html") : @abs_path
+  end
+
+  def check_for_redirect(uri)
+    uri.path == "/redirect" ? "/" : uri.path
   end
 
   def set_full_path(path)
@@ -110,19 +111,15 @@ class ServerResponse
   end
 
   def read_file(full_path)
-    file = File.open(full_path, "rb")
-    data = file.read
-    file.close
-    data
+    File.open(full_path, "rb"){|file| file.read }
   end
 
   def write_file(full_path, data)
-    File.open(full_path, "wb"){ |file| file.puts data }
+    File.open(full_path, "wb"){ |file| file.puts(data) }
   end
 
   def legitimate_file_request?(requested_file_path)
-    root = "/"
-    requested_file_path == root || (File.exists?(requested_file_path) && !File.directory?(requested_file_path))
+    requested_file_path == @public_dir || (File.exists?(requested_file_path) && !File.directory?(requested_file_path))
   end
 
   def find_content_type(path)
