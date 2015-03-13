@@ -1,7 +1,7 @@
 require 'uri'
 require 'cgi'
 
-class ServerResponse
+class ResponseHandler
   def initialize(request)
     @method = request["method"]
     @uri = request["uri"]
@@ -33,10 +33,9 @@ class ServerResponse
 
   def get
     if legitimate_file_request?(@abs_path)
-      path_to_file = check_for_root(@relative_path)
+      path_to_file = serve_file_path(@relative_path)
       response_body = read_file(path_to_file)
-      header_info = { "status_code" => set_response_message(200), "content_type" => find_content_type(path_to_file), "content_length" => response_body.length }
-      header = create_response_header(header_info)
+      header = build_get_response_header(path_to_file, response_body)
       { "header" => header, "response_body" => response_body }
     else
       raise_error(404, "File not found#{@request_params}")
@@ -94,20 +93,23 @@ class ServerResponse
     end
   end
 
-  def check_for_root(path)
-    (path == "/") ? (@abs_path + "index.html") : @abs_path
+  def serve_file_path(path, redirect_path = "/index.html")
+    if path == "/" || path == "/redirect"
+      @public_dir + redirect_path
+    else
+      @abs_path
+    end
   end
 
-  def check_for_redirect(uri)
-    uri.path == "/redirect" ? "/" : uri.path
-  end
-
-  def set_full_path(path)
-    File.join(@public_dir, path)
-  end
-
-  def redirect_uri_path
-    @uri.path = "/"
+  def build_get_response_header(path_to_file, response_body)
+    if @relative_path == "/redirect"
+      header_info = { "status_code" => set_response_message(200), "content_type" => find_content_type(path_to_file), "content_length" => response_body.length }
+      location_info = ("Location: http://localhost:5000/\r\n")
+      create_response_header(header_info, location_info)
+    else
+      header_info = { "status_code" => set_response_message(200), "content_type" => find_content_type(path_to_file), "content_length" => response_body.length }
+      create_response_header(header_info)
+    end
   end
 
   def read_file(full_path)
@@ -120,7 +122,9 @@ class ServerResponse
 
   def legitimate_file_request?(requested_file_path)
     root = File.join(@public_dir, "/")
-    requested_file_path == root || (File.exists?(requested_file_path) && !File.directory?(requested_file_path))
+    redirect = File.join(@public_dir, "/redirect")
+    requested_file_path == root || requested_file_path == redirect ||
+      (File.exists?(requested_file_path) && !File.directory?(requested_file_path))
   end
 
   def find_content_type(path)
@@ -185,7 +189,10 @@ class ServerResponse
       combined = value.join(" ")
       " #{key} = #{combined}\n"
     end
-    puts results
     results.join('')
+  end
+
+  def return_relative_path
+    @relative_path
   end
 end

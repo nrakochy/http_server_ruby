@@ -1,9 +1,9 @@
 require 'server'
 
-describe ServerResponse do
+describe ResponseHandler do
 
   let(:legit_post_req){ { "method" => "POST", "uri" => URI("/form?variable_1=Operators%2"), "incoming_data" => "params1=value1" } }
-  let(:basic_post_response){ ServerResponse.new(legit_post_req) }
+  let(:basic_post_response){ ResponseHandler.new(legit_post_req) }
 
   context "Interpretation Methods: #get / #head" do
     describe "#legitimate_file_request?" do
@@ -83,7 +83,7 @@ describe ServerResponse do
           "Date: #{Time.now.to_s}\r\n" +
           "Content-Type: text/plain\r\n" +
             "Content-Length: 28\r\n")
-        expect(ServerResponse.new(bogus_request).interpret_request).to eq(
+        expect(ResponseHandler.new(bogus_request).interpret_request).to eq(
           { "header" => expected_404_header, "response_body" => expected_404_message })
       end
     end
@@ -92,13 +92,13 @@ describe ServerResponse do
     describe "#find_query_params" do
       it "returns a hash of query parameters from a URI with parameters" do
         post_req = { "method" => "POST", "uri" => URI("/form?variable_1=Operators%2"), "incoming_data" => "params1=value1" }
-        queried = ServerResponse.new(post_req).find_query_params
+        queried = ResponseHandler.new(post_req).find_query_params
         expect(queried).to eq(" variable_1 = Operators%2\n")
       end
 
       it "returns a hash of query parameters from a URI with parameters" do
         post_req = { "method" => "POST", "uri" => URI("/form"), "incoming_data" => "params1=value1" }
-        queried = ServerResponse.new(post_req).find_query_params
+        queried = ResponseHandler.new(post_req).find_query_params
         expect(queried).to eq("")
       end
     end
@@ -106,23 +106,33 @@ describe ServerResponse do
     describe "#convert_query_to_string" do
       it "returns a strings with format param=query from single query" do
         post_req = { "method" => "POST", "uri" => URI("/form?variable_1=Operators%2"), "incoming_data" => "params1=value1" }
-        response = ServerResponse.new(post_req)
+        response = ResponseHandler.new(post_req)
         query = { "variable_1" => ["Operators%2"] }
         expect(response.convert_queries_to_string(query)).to eq(" variable_1 = Operators%2\n")
       end
 
       it "returns a strings with format param=query from multiple queries" do
         post_req = { "method" => "POST", "uri" => URI("/form?variable_1=Operators%2variable_2=Operators%3"), "incoming_data" => "params1=value1" }
-        response = ServerResponse.new(post_req)
+        response = ResponseHandler.new(post_req)
         query = { "variable_1" => ["Operators%2"], "variable_2" =>["Operators%3"] }
         expect(response.convert_queries_to_string(query)).to eq(" variable_1 = Operators%2\n variable_2 = Operators%3\n")
       end
 
-      describe "#check_for_redirect" do
-        it "redefines a redirect route with the root route" do
+      describe "#serve_file_path" do
+        it "returns a path to a root file" do
+          post_req = { "method" => "POST", "uri" => URI("/"), "incoming_data" => "params1=value1" }
+          response = ResponseHandler.new(post_req)
+          filepath = File.expand_path("../../public", __FILE__)
+          homepage = File.join(filepath, "/index.html")
+          expect(response.serve_file_path(response.return_relative_path)).to eq(homepage)
+        end
+
+        it "redefines a redirect route to a given file" do
           post_req = { "method" => "POST", "uri" => URI("/redirect"), "incoming_data" => "params1=value1" }
-          response = ServerResponse.new(post_req)
-          expect(response.check_for_redirect(post_req["uri"])).to eq("/")
+          response = ResponseHandler.new(post_req)
+          filepath = File.expand_path("../../public", __FILE__)
+          homepage = File.join(filepath, "/index.html")
+          expect(response.serve_file_path(response.return_relative_path)).to eq(homepage)
         end
       end
     end

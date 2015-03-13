@@ -1,6 +1,7 @@
 require 'socket'
 require 'uri'
-require 'server_response'
+require 'request_handler'
+require 'response_handler'
 
 class HTTPServer
 
@@ -18,10 +19,8 @@ class HTTPServer
   end
 
   def serve(client)
-    http_request = retrieve_request(client)
-    STDERR.puts(http_request)
-    split_request = split_request(http_request)
-    response = create_server_response(split_request)
+    parsed_request = handle_incoming_request(client)
+    response = create_server_response(parsed_request)
     header = response["header"]
     response_body = response["response_body"]
     client.print(header)
@@ -31,21 +30,15 @@ class HTTPServer
     client.close
   end
 
-  def retrieve_request(client)
-    client.readpartial(1000)
-  end
-
-  def split_request(request)
-    split_req = request.split("\n")
-    first_line = split_req[0].split(" ")
-    method = first_line[0]
-    uri = URI(first_line[1])
-    incoming_data = split_req.last
-    { "method" => method, "uri" => uri, "incoming_data" => incoming_data }
-  end
-
   def create_server_response(request)
-    ServerResponse.new(request).interpret_request
+    ResponseHandler.new(request).interpret_request
+  end
+
+  def handle_incoming_request(client)
+    handler = RequestHandler.new(client)
+    http_request = handler.read_request
+    STDERR.puts(http_request)
+    handler.process_request(http_request)
   end
 
   def closing_connection_message
