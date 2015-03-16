@@ -1,7 +1,7 @@
 require 'socket'
 require 'uri'
-require 'request_handler'
-require 'response_handler'
+require 'request_factory'
+require 'request_router'
 
 class HTTPServer
 
@@ -31,14 +31,14 @@ class HTTPServer
   end
 
   def create_server_response(request)
-    ResponseHandler.new(request).interpret_request
+    RequestRouter.new(request).interpret_request
   end
 
   def handle_incoming_request(client)
-    handler = RequestHandler.new(client)
+    handler = RequestFactory.new(client)
     http_request = handler.read_request
     STDERR.puts(http_request)
-    handler.process_request(http_request)
+    handler.parse_request_by_category(http_request)
   end
 
   def closing_connection_message

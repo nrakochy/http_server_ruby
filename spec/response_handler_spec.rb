@@ -89,51 +89,21 @@ describe ResponseHandler do
     end
   end
   context "Helper Methods" do
-    describe "#find_query_params" do
-      it "returns a hash of query parameters from a URI with parameters" do
-        post_req = { "method" => "POST", "uri" => URI("/form?variable_1=Operators%2"), "incoming_data" => "params1=value1" }
-        queried = ResponseHandler.new(post_req).find_query_params
-        expect(queried).to eq(" variable_1 = Operators%2\n")
-      end
-
-      it "returns a hash of query parameters from a URI with parameters" do
-        post_req = { "method" => "POST", "uri" => URI("/form"), "incoming_data" => "params1=value1" }
-        queried = ResponseHandler.new(post_req).find_query_params
-        expect(queried).to eq("")
-      end
-    end
-
-    describe "#convert_query_to_string" do
-      it "returns a strings with format param=query from single query" do
-        post_req = { "method" => "POST", "uri" => URI("/form?variable_1=Operators%2"), "incoming_data" => "params1=value1" }
+    describe "#serve_file_path" do
+      it "returns a path to a root file" do
+        post_req = { "method" => "POST", "uri" => URI("/"), "incoming_data" => "params1=value1" }
         response = ResponseHandler.new(post_req)
-        query = { "variable_1" => ["Operators%2"] }
-        expect(response.convert_queries_to_string(query)).to eq(" variable_1 = Operators%2\n")
+        filepath = File.expand_path("../../public", __FILE__)
+        homepage = File.join(filepath, "/index.html")
+        expect(response.serve_file_path(response.return_relative_path)).to eq(homepage)
       end
 
-      it "returns a strings with format param=query from multiple queries" do
-        post_req = { "method" => "POST", "uri" => URI("/form?variable_1=Operators%2variable_2=Operators%3"), "incoming_data" => "params1=value1" }
+      it "redefines a redirect route to a given file" do
+        post_req = { "method" => "POST", "uri" => URI("/redirect"), "incoming_data" => "params1=value1" }
         response = ResponseHandler.new(post_req)
-        query = { "variable_1" => ["Operators%2"], "variable_2" =>["Operators%3"] }
-        expect(response.convert_queries_to_string(query)).to eq(" variable_1 = Operators%2\n variable_2 = Operators%3\n")
-      end
-
-      describe "#serve_file_path" do
-        it "returns a path to a root file" do
-          post_req = { "method" => "POST", "uri" => URI("/"), "incoming_data" => "params1=value1" }
-          response = ResponseHandler.new(post_req)
-          filepath = File.expand_path("../../public", __FILE__)
-          homepage = File.join(filepath, "/index.html")
-          expect(response.serve_file_path(response.return_relative_path)).to eq(homepage)
-        end
-
-        it "redefines a redirect route to a given file" do
-          post_req = { "method" => "POST", "uri" => URI("/redirect"), "incoming_data" => "params1=value1" }
-          response = ResponseHandler.new(post_req)
-          filepath = File.expand_path("../../public", __FILE__)
-          homepage = File.join(filepath, "/index.html")
-          expect(response.serve_file_path(response.return_relative_path)).to eq(homepage)
-        end
+        filepath = File.expand_path("../../public", __FILE__)
+        homepage = File.join(filepath, "/index.html")
+        expect(response.serve_file_path(response.return_relative_path)).to eq(homepage)
       end
     end
   end
