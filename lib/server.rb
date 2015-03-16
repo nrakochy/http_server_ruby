@@ -2,11 +2,13 @@ require 'socket'
 require 'uri'
 require 'request/request_factory'
 require 'request/request_router'
+require 'activity_logger'
 
 class HTTPServer
 
   def initialize(params)
     @server = TCPServer.new(params["hostname"], params["port"])
+    @logger = ActivityLogger.new
   end
 
   def run
@@ -21,24 +23,27 @@ class HTTPServer
   def serve(client)
     parsed_request = handle_incoming_request(client)
     response = create_server_response(parsed_request)
-    header = response["header"]
-    response_body = response["response_body"]
-    client.print(header)
-    client.print(closing_connection_message)
-    client.print(response_body) if !response_body.empty?
+    response_message = response["header"] + closing_connection_message + response["response_body"]
+    log_activity(response["header"])
+    client.print(response_message)
   ensure
     client.close
   end
 
   def create_server_response(request)
-    RequestRouter.new(request).interpret_request
+    RequestRouter.new(request).authenticate_and_route
   end
 
   def handle_incoming_request(client)
     handler = RequestFactory.new(client)
     http_request = handler.read_request
+    log_activity(http_request)
     STDERR.puts(http_request)
     handler.parse_request_by_category(http_request)
+  end
+
+  def log_activity(data)
+    @logger.log_server_activity(data)
   end
 
   def closing_connection_message

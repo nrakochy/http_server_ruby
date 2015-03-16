@@ -1,10 +1,12 @@
 require 'cgi'
 require 'uri'
+require 'activity_logger'
 
 class RequestFactory
 
   def initialize(client)
     @client = client
+    @logger = ActivityLogger.new
   end
 
   def read_request
@@ -15,8 +17,8 @@ class RequestFactory
     split_req = split_request_by_line(request)
     first_line = split_req[0].split(" ")
     method = first_line[0]
-    host = find_header_info(split_req, "Host")
-    credentials = find_header_info(split_req, "Authentication")
+    host = find_header_info(split_req, "Host:")
+    credentials = find_header_info(split_req, "Authorization:")
     uri = URI(first_line[1])
     query_params = find_query_params(uri)
     incoming_data = split_req.last.chomp

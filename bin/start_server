@@ -2,7 +2,10 @@
 
 $:.unshift(File.expand_path(File.dirname(__FILE__) + "/../lib/"))
 
+require_relative '../config/env'
 require 'server'
+
+ADMIN_LOGIN = ENV["admin"]
 
 server_config = { "port" => 5000, "hostname" => "::1" }
 print("Server started and listening on port #{server_config["port"]}\r\n")

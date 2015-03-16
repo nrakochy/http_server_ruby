@@ -12,14 +12,14 @@ class RequestRouter
 
   def authenticate_and_route
     if authentication_required?(@relative_path)
-      authorized_user? ? route_request : raise_error(401, "You do not have authorization for this resource")
+      authorized_user? ? route_request : @handler.raise_error(401, "Authentication required for this resource")
     else
       route_request
     end
   end
 
     def authorized_user?
-      @credentials == "admin:hunter2"
+      @credentials == "Authorization: Basic #{ADMIN_LOGIN}"
     end
 
     def authentication_required?(path)
@@ -41,7 +41,7 @@ class RequestRouter
       when "DELETE"
         @handler.delete
       else
-        raise_error(404, "File not found")
+        @handler.raise_error(404, "File not found")
       end
     end
 end
