@@ -6,33 +6,6 @@ describe ResponseHandler do
     "query_params" => "", "incoming_data" => "params1=value1" } }
   let(:basic_post_response){ ResponseHandler.new(legit_post_req) }
 
-  context "Interpretation Methods: #get / #head" do
-    describe "#legitimate_file_request?" do
-      it 'returns false if requested file path is a directory' do
-        filepath = File.expand_path("../", __FILE__)
-        expect(basic_post_response.legitimate_file_request?(filepath)).to eq(false)
-        expect(File.directory?(filepath)).to eq(true)
-      end
-
-      it 'returns false if requested file path leads to non-existing file' do
-        filepath = File.expand_path("../non_existent.txt", __FILE__)
-        expect(basic_post_response.legitimate_file_request?(filepath)).to eq(false)
-      end
-
-      it 'returns true if requested file path is the root directory' do
-        filepath = File.expand_path("../../public", __FILE__)
-        root = File.join(filepath, "/")
-        expect(basic_post_response.legitimate_file_request?(root)).to eq(true)
-        expect(File.directory?(filepath)).to eq(true)
-      end
-
-      it 'returns true if requested file exists' do
-        filepath = File.expand_path("../../public/text-file.txt", __FILE__)
-        expect(basic_post_response.legitimate_file_request?(filepath)).to eq(true)
-      end
-    end
-  end
-
   context "Response Builder Methods" do
     describe "#create_response_header" do
       it "returns a properly formatted HTTP response header" do

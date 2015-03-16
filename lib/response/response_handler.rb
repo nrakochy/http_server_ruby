@@ -1,4 +1,5 @@
 require 'uri'
+require 'response/file_accessor'
 
 class ResponseHandler
   def initialize(request)
@@ -8,12 +9,13 @@ class ResponseHandler
     @public_dir = File.expand_path("../../../public", __FILE__)
     @abs_path = File.join(@public_dir, @relative_path)
     @request_params = request["query_params"]
+    @file_accessor = FileAccessor.new
   end
 
   def get
-    if legitimate_file_request?(@abs_path)
+    if @file_accessor.legitimate_request?(@abs_path)
       path_to_file = serve_file_path(@relative_path)
-      response_body = read_file(path_to_file)
+      response_body = @file_accessor.read_file(path_to_file)
       header = build_get_response_header(path_to_file, response_body)
       { "header" => header, "response_body" => response_body }
     else
@@ -22,7 +24,7 @@ class ResponseHandler
   end
 
   def head
-    if legitimate_file_request?(@abs_path)
+    if @file_accessor.legitimate_request?(@abs_path)
       response_body = ""
       content_type = find_content_type(full_path)
       header_info = { "status_code" => set_response_message(200), "content_type" => content_type, "content_length" => response_body.length }
@@ -35,8 +37,8 @@ class ResponseHandler
 
   def post
     if @relative_path == "/form"
-      write_file(@abs_path, @incoming_data)
-      response_body = read_file(@abs_path)
+      @file_accessor.append_file(@abs_path, @incoming_data)
+      response_body = @file_accessor.read_file(@abs_path)
       header_info = { "status_code" => set_response_message(200), "content_type" => "plain/text", "content_length" => response_body.length }
       header = create_response_header(header_info)
       { "header" => header, "response_body" => response_body }
@@ -46,7 +48,15 @@ class ResponseHandler
   end
 
   def put
-    post
+    if @relative_path == "/form"
+      @file_accessor.write_file(@abs_path, @incoming_data)
+      response_body = @file_accessor.read_file(@abs_path)
+      header_info = { "status_code" => set_response_message(200), "content_type" => "plain/text", "content_length" => response_body.length }
+      header = create_response_header(header_info)
+      { "header" => header, "response_body" => response_body }
+    else
+      raise_error(405)
+    end
   end
 
   def options
@@ -59,7 +69,7 @@ class ResponseHandler
 
   def delete
     if @relative_path == "/form"
-      write_file(@abs_path, "")
+      @file_accessor.write_file(@abs_path, "")
       response_body = read_file(@abs_path)
       header_info = { "status_code" => set_response_message(200), "content_type" => "plain/text", "content_length" => response_body.length }
       header = create_response_header(header_info)
@@ -77,6 +87,9 @@ class ResponseHandler
     end
   end
 
+  def create_directory_list
+  end
+
   def build_get_response_header(path_to_file, response_body)
     #NOTE: This conditional was addded for a Cob Spec test which is not passing. Not sure what the test is after
     if @relative_path == "/redirect"
@@ -87,21 +100,6 @@ class ResponseHandler
       header_info = { "status_code" => set_response_message(200), "content_type" => find_content_type(path_to_file), "content_length" => response_body.length }
       create_response_header(header_info)
     end
-  end
-
-  def read_file(full_path)
-    File.open(full_path, "rb"){|file| file.read }
-  end
-
-  def write_file(full_path, data)
-    File.open(full_path, "wb"){ |file| file.puts(data) }
-  end
-
-  def legitimate_file_request?(requested_file_path)
-    root = File.join(@public_dir, "/")
-    redirect = File.join(@public_dir, "/redirect")
-    requested_file_path == root || requested_file_path == redirect ||
-      (File.exists?(requested_file_path) && !File.directory?(requested_file_path))
   end
 
   def find_content_type(path)
