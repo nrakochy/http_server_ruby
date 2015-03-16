@@ -1,5 +1,6 @@
 require 'response/response_handler'
 
+
 class RequestRouter
   def initialize(request)
     @method = request["method"]
@@ -9,7 +10,7 @@ class RequestRouter
     @handler = ResponseHandler.new(request)
   end
 
-  def interpret_request
+  def authenticate_and_route
     if authentication_required?(@relative_path)
       authorized_user? ? route_request : raise_error(401, "You do not have authorization for this resource")
     else
@@ -25,14 +26,9 @@ class RequestRouter
       @protected_routes.values.include?(path)
     end
 
-    def authentication_required?
-      @protected_routes.values.include?(@relative_path)
-    end
-
     def route_request
       case @method
       when "GET"
-        puts "ROUTED"
         @handler.get
       when "HEAD"
         @handler.head
