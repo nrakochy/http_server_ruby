@@ -1,11 +1,10 @@
-require 'response_handler'
+require 'response/response_handler'
 
 class RequestRouter
   def initialize(request)
     @method = request["method"]
     @credentials = request["credentials"]
     @relative_path = request["uri"].path
-    puts "HERE IS RELATIVE PATH: #{@relative_path}"
     @protected_routes = { "logs" => "/logs"}
     @handler = ResponseHandler.new(request)
   end

@@ -5,9 +5,9 @@ class ResponseHandler
     @uri = request["uri"]
     @incoming_data = request["incoming_data"]
     @relative_path = @uri.path
-    @public_dir = File.expand_path("../../public", __FILE__)
+    @public_dir = File.expand_path("../../../public", __FILE__)
     @abs_path = File.join(@public_dir, @relative_path)
-    @request_params = find_query_params
+    @request_params = request["query_params"]
   end
 
   def get

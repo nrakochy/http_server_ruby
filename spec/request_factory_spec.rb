@@ -1,5 +1,5 @@
 require 'uri'
-require 'request_factory'
+require 'request/request_factory'
 
 describe RequestFactory do
   let(:mock_io){ "mocked_out" }

@@ -1,7 +1,7 @@
 require 'socket'
 require 'uri'
-require 'request_factory'
-require 'request_router'
+require 'request/request_factory'
+require 'request/request_router'
 
 class HTTPServer
 
