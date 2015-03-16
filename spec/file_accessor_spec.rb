@@ -28,4 +28,19 @@ describe FileAccessor do
       end
     end
 
+    describe "#wrap_in_html" do
+      it "returns an array of input data wrapped in hyperlink tags" do
+        list = ["record1", "record2"]
+        expect(file_accessor.wrap_in_html(list)).to eq(
+        ["<a href=record1>record1</a>", "<a href=record2>record2</a>"])
+      end
+    end
+
+    describe "#find_files_in_public_directory" do
+      it "returns a list of files in the public directory" do
+        list = []
+        Dir.foreach(File.expand_path("../../public", __FILE__)){|file| list << file }
+        expect(file_accessor.find_files_in_public_directory).to eq(list)
+      end
+    end
 end

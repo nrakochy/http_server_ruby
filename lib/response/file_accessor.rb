@@ -16,10 +16,21 @@ class FileAccessor
     File.open(full_path, "a"){|file| file << data }
   end
 
-  def list_directory
+  def update_directory_list
+    directory_list = find_files_in_public_directory
+    wrapped_list = wrap_in_html(directory_list)
+    directory_path = File.join(@public_dir, "/index.html")
+    write_file(directory_path, wrapped_list)
+  end
+
+  def find_files_in_public_directory
     list = []
     Dir.foreach(@public_dir){|file| list << file }
     list
+  end
+
+  def wrap_in_html(data)
+    data.map{|record| '<a href=' + record + ">" + record + "</a>"}
   end
 
   def legitimate_request?(requested_file_path)
@@ -28,7 +39,4 @@ class FileAccessor
     requested_file_path == root || requested_file_path == redirect ||
       (File.exists?(requested_file_path) && !File.directory?(requested_file_path))
   end
-
-
-
 end

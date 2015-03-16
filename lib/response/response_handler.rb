@@ -10,6 +10,7 @@ class ResponseHandler
     @abs_path = File.join(@public_dir, @relative_path)
     @request_params = request["query_params"]
     @file_accessor = FileAccessor.new
+    @file_accessor.update_directory_list
   end
 
   def get
@@ -85,9 +86,6 @@ class ResponseHandler
     else
       @abs_path
     end
-  end
-
-  def create_directory_list
   end
 
   def build_get_response_header(path_to_file, response_body)
