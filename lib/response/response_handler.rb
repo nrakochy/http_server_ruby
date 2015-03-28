@@ -5,12 +5,12 @@ class ResponseHandler
   def initialize(request)
     @uri = request["uri"]
     @incoming_data = request["incoming_data"]
+    @etag = request["etag"]
+    @request_params = request["query_params"]
     @relative_path = @uri.path
     @public_dir = File.expand_path("../../../public", __FILE__)
     @abs_path = File.join(@public_dir, @relative_path)
-    @request_params = request["query_params"]
     @file_accessor = FileAccessor.new
-    @file_accessor.update_directory_list
   end
 
   def get
@@ -27,12 +27,11 @@ class ResponseHandler
   def head
     if @file_accessor.legitimate_request?(@abs_path)
       response_body = ""
-      content_type = find_content_type(full_path)
-      header_info = { "status_code" => set_response_message(200), "content_type" => content_type, "content_length" => response_body.length }
+      header_info = { "status_code" => set_response_message(200), "content_type" => "plain/text", "content_length" => 0 }
       header = create_response_header(header_info)
       { "header" => header, "response_body" => response_body }
     else
-      raise_error(404, @request_params)
+      raise_error(404)
     end
   end
 
@@ -71,12 +70,27 @@ class ResponseHandler
   def delete
     if @relative_path == "/form"
       @file_accessor.write_file(@abs_path, "")
-      response_body = read_file(@abs_path)
+      response_body = @file_accessor.read_file(@abs_path)
       header_info = { "status_code" => set_response_message(200), "content_type" => "plain/text", "content_length" => response_body.length }
       header = create_response_header(header_info)
       { "header" => header, "response_body" => response_body }
     else
       raise_error(400)
+    end
+  end
+
+  def patch
+    if @relative_path == "/patch-content.txt"
+      updated_record = {"etag": @etag, "data": @incoming_data }
+      status_code = route_based_on_etag(updated_record)
+      #NOTE: file is not writing
+      response_body = "#{@incoming_data}"
+      header_info = { "status_code" => set_response_message(status_code), "content_type" => "plain/text", "content_length" => response_body.length }
+      patch_info = "ETAG: #{@etag}\r\n"
+      header = create_response_header(header_info, patch_info)
+      { "header" => header, "response_body" => response_body }
+    else
+      raise_error(404)
     end
   end
 
@@ -88,8 +102,17 @@ class ResponseHandler
     end
   end
 
+  def route_based_on_etag(updated_record)
+    if @file_accessor.matching_etag?(@abs_path, updated_record)
+      return 304
+    else
+      @file_accessor.patch_record(@abs_path, updated_record)
+      return 200
+    end
+  end
+
   def build_get_response_header(path_to_file, response_body)
-    #NOTE: This conditional was addded for a Cob Spec test which is not passing. Not sure what the test is after
+    #NOTE: This conditional was added for a Cob Spec test which is not passing. Not sure what the test is after
     if @relative_path == "/redirect"
       header_info = { "status_code" => set_response_message(200), "content_type" => find_content_type(path_to_file), "content_length" => response_body.length }
       location_info = ("location: http://localhost:5000/\r\n")
@@ -148,5 +171,4 @@ class ResponseHandler
   def return_relative_path
     @relative_path
   end
-
 end

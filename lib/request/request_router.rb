@@ -19,7 +19,7 @@ class RequestRouter
   end
 
     def authorized_user?
-      @credentials == "Authorization: Basic #{ADMIN_LOGIN}"
+      @credentials == ADMIN_LOGIN
     end
 
     def authentication_required?(path)
@@ -40,6 +40,8 @@ class RequestRouter
         @handler.options
       when "DELETE"
         @handler.delete
+      when "PATCH"
+        @handler.patch
       else
         @handler.raise_error(404, "File not found")
       end

@@ -8,6 +8,7 @@ describe RequestFactory do
     "POST /path/form?variable1=Operators%2 HTTP/1.0" +
     "From: someuser@example.com"    +
     "User-Agent: HTTPTool/1.0"      +
+    "If-None-Match: 321000abc"      +
     "\r\n"                          +
     "data=fatcat"
   }
@@ -33,14 +34,20 @@ describe RequestFactory do
       processed_request = factory.parse_request_by_category(sample_request)
       expect(processed_request["query_params"]).to eq("variable1 = Operators%2\n")
     end
-
   end
 
+  describe "#get_header_info" do
+    it "returns an array with a single string which matches a given header info string" do
+      request = ["POST /path/form?variable1=Operators%2 HTTP/1.0", "From: someuser@example.com",
+    "User-Agent: HTTPTool/1.0"]
+      expect(factory.get_header_info(request, "User-Agent")).to eq("User-Agent: HTTPTool/1.0")
+    end
+  end
 
   describe "#find_query_params" do
-    it "returns an empty string if there are no params on the incoming request" do
+    it "returns nil if there are no params on the incoming request" do
       uri = URI("/form")
-      expect(factory.find_query_params(uri)).to eq("")
+      expect(factory.find_query_params(uri)).to eq(nil)
     end
 
     it "returns a single query string from an incoming request" do
