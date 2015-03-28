@@ -107,7 +107,7 @@ class ResponseHandler
       return 304
     else
       @file_accessor.patch_record(@abs_path, updated_record)
-      return 200
+      return 204
     end
   end
 
@@ -156,6 +156,7 @@ class ResponseHandler
   def set_response_message(status_code)
     response_messages = {
       200 => "200 OK",
+      204 => "204 No Content",
       301 => "301 Moved Permanently",
       302 => "302 Moved Temporarily",
       304 => "304 Not Modified",
