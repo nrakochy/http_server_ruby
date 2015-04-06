@@ -5,7 +5,7 @@ A vanilla Ruby server written to meet HTTP 1.1 specs (currently in-process)
 Once you have the project files, start the server with `bin/start_server` for a server instance on port 5000.
 
 ## Acceptance Tests
-This was built using [Cob Spec](https://github.com/8thlight/cob_spec), “a suite of tests used to validate a web server to ensure it adheres to HTTP specifications.”
+This was built using [Cob Spec](https://github.com/8thlight/cob_spec), "a suite of tests used to validate a web server to ensure it adheres to HTTP specifications."
 
 To configure on your local machine, you need to follow the config instructions in the Cob Spec README.
 
