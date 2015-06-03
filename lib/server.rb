@@ -1,24 +1,41 @@
 require 'socket'
 require 'uri'
+require 'thread'
 require 'request/request_factory'
 require 'request/request_router'
 require 'activity_logger'
 
 class HTTPServer
+  NUM_WORKERS = 10
 
   def initialize(params)
     @server = TCPServer.new(params["hostname"], params["port"])
     @logger = ActivityLogger.new
+    @jobs = Queue.new
   end
 
   def run
     loop {
-      session = @server.accept
-      Thread.start(session) do |client|
-        serve(client)
-      end
+      @jobs << @server.accept
+      loop {
+        break if @jobs.empty?
+        run_threads
+      }
     }
   end
+
+  def run_threads
+    workers = []
+    NUM_WORKERS.times do |worker|
+      workers << Thread.start do
+        while !@jobs.empty?
+          serve(@jobs.pop)
+        end
+      end
+    end
+    workers.each(&:join)
+  end
+
 
   def serve(client)
     parsed_request = handle_incoming_request(client)
