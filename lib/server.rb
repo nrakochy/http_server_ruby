@@ -6,7 +6,7 @@ require 'request/request_router'
 require 'activity_logger'
 
 class HTTPServer
-  NUM_WORKERS = 10
+  NUM_WORKERS = 25
 
   def initialize(params)
     @server = TCPServer.new(params["hostname"], params["port"])
@@ -16,19 +16,16 @@ class HTTPServer
 
   def run
     loop {
-      @jobs << @server.accept
-      loop {
-        break if @jobs.empty?
-        run_threads
-      }
+      run_threads
     }
+    @server.close_write
   end
 
   def run_threads
     workers = []
     NUM_WORKERS.times do |worker|
       workers << Thread.start do
-        while !@jobs.empty?
+        while @jobs << @server.accept
           serve(@jobs.pop)
         end
       end
@@ -44,7 +41,7 @@ class HTTPServer
     log_activity(response["header"])
     client.print(response_message)
   ensure
-    client.close
+    client.close_read
   end
 
   def create_server_response(request)
